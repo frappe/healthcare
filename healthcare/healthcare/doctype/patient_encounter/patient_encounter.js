@@ -9,11 +9,16 @@ frappe.ui.form.on('Patient Encounter', {
 		];
 		frm.get_field('drug_prescription').grid.editable_fields = [
 			{fieldname: 'drug_code', columns: 2},
-			{fieldname: 'drug_name', columns: 2},
-			{fieldname: 'dosage', columns: 2},
+			{fieldname: 'drug_name', columns: 3},
+			{fieldname: 'dosage', columns: 1},
 			{fieldname: 'period', columns: 2},
 			{fieldname: 'dosage_form', columns: 2}
 		];
+		if (frappe.meta.get_docfield('Drug Prescription', 'medication').in_list_view === 1) {
+			frm.get_field('drug_prescription').grid.editable_fields.splice(0, 0, {fieldname: 'medication', columns: 3});
+			frm.get_field('drug_prescription').grid.editable_fields.splice(2, 1); // remove item description
+		}
+
 		frm.get_field('lab_test_prescription').grid.editable_fields = [
 			{fieldname: 'lab_test_code', columns: 2},
 			{fieldname: 'lab_test_name', columns: 4},
@@ -101,6 +106,15 @@ frappe.ui.form.on('Patient Encounter', {
 		});
 
 		frm.set_df_property('patient', 'read_only', frm.doc.appointment ? 1 : 0);
+
+		frm.set_query('insurance_policy', function() {
+			return {
+				filters: {
+					'patient': frm.doc.patient,
+					'docstatus': 1
+				}
+			};
+		});
 	},
 
 	appointment: function(frm) {
@@ -130,7 +144,10 @@ frappe.ui.form.on('Patient Encounter', {
 						'type': data.message.appointment_type,
 						'practitioner': data.message.practitioner,
 						'invoiced': data.message.invoiced,
-						'company': data.message.company
+						'company': data.message.company,
+						'appointment_type': data.message.appointment_type,
+						'insurance_policy': data.message.insurance_policy,
+						'insurance_coverage': data.message.insurance_coverage
 					};
 					frm.set_value(values);
 					frm.set_df_property('patient', 'read_only', 1);
@@ -147,7 +164,10 @@ frappe.ui.form.on('Patient Encounter', {
 				'patient_sex': '',
 				'patient_age': '',
 				'inpatient_record': '',
-				'inpatient_status': ''
+				'inpatient_status': '',
+				'insurance_policy': '',
+				'insurance_coverage': ''
+
 			};
 			frm.set_value(values);
 			frm.set_df_property('patient', 'read_only', 0);

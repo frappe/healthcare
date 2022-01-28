@@ -15,6 +15,7 @@ from healthcare.healthcare.doctype.lab_test.lab_test import create_sample_doc
 from erpnext.stock.get_item_details import get_item_details
 from erpnext.stock.stock_ledger import get_previous_sle
 
+from healthcare.healthcare.doctype.service_request.service_request import update_service_request_status
 
 class ClinicalProcedure(Document):
 	def validate(self):
@@ -34,16 +35,18 @@ class ClinicalProcedure(Document):
 			self.set_actual_qty()
 
 	def after_insert(self):
-		if self.prescription:
-			frappe.db.set_value('Procedure Prescription', self.prescription, 'procedure_created', 1)
+		if self.service_request:
+			update_service_request_status(self.service_request, self.doctype, self.name)
+
 		if self.appointment:
 			frappe.db.set_value('Patient Appointment', self.appointment, 'status', 'Closed')
+
 		template = frappe.get_doc('Clinical Procedure Template', self.procedure_template)
 		if template.sample:
 			patient = frappe.get_doc('Patient', self.patient)
 			sample_collection = create_sample_doc(template, patient, None, self.company)
-			frappe.db.set_value('Clinical Procedure', self.name, 'sample', sample_collection.name)
-		self.reload()
+			self.db_set('sample', sample_collection.name)
+			self.reload()
 
 	def set_status(self):
 		if self.docstatus == 0:
@@ -96,6 +99,8 @@ class ClinicalProcedure(Document):
 				frappe.throw(_('Please set Customer in Patient {0}').format(frappe.bold(self.patient)), title=_('Customer Not Found'))
 
 		self.db_set('status', 'Completed')
+		if self.service_request:
+			frappe.db.set_value('Service Request', self.service_request, 'status', 'Completed')
 
 		if self.consume_stock and self.items:
 			return stock_entry
@@ -253,3 +258,37 @@ def make_procedure(source_name, target_doc=None):
 		}, target_doc, set_missing_values)
 
 	return doc
+
+@frappe.whitelist()
+def get_procedure_prescribed(patient, encounter=False):
+	hso = frappe.qb.DocType('Service Request')
+	return  (
+		frappe.qb.from_(hso)
+			.select(hso.template_dn, hso.order_group, hso.invoiced,\
+				hso.practitioner, hso.order_date, hso.name,\
+				hso.insurance_policy, hso.insurance_payor)
+			.where(hso.patient == patient)
+			.where(hso.status != 'Completed')
+			.where(hso.template_dt == 'Clinical Procedure Template')
+			.orderby(hso.creation, order=frappe.qb.desc)
+	).run()
+	# return frappe.db.sql(
+	# 	'''
+	# 		select
+	# 			hso.template_dn as procedure_template,
+	# 			hso.order_group,
+	# 			hso.invoiced,
+	# 			hso.practitioner as practitioner,
+	# 			hso.order_date as encounter_date,
+	# 			hso.name,
+	# 			hso.insurance_policy,
+	# 			hso.insurance_payor
+	# 		from
+	# 			`tabService Request` hso
+	# 		where
+	# 			hso.patient=%s
+	# 			and hso.status!=%s
+	# 			and hso.template_dt=%s
+	# 		order by
+	# 			hso.creation desc
+	# 	''', (patient, 'Completed', 'Clinical Procedure Template'))

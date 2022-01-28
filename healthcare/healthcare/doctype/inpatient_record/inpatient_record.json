@@ -22,6 +22,16 @@
   "scheduled_date",
   "admitted_datetime",
   "expected_discharge",
+  "sb_source",
+  "source",
+  "column_break_19",
+  "referring_practitioner",
+  "insurance_section",
+  "insurance_policy",
+  "insurance_coverage",
+  "column_break_23",
+  "insurance_payor",
+  "approval_status",
   "references",
   "admission_encounter",
   "admission_practitioner",
@@ -408,11 +418,74 @@
    "fieldtype": "Datetime",
    "label": "Discharge Date",
    "permlevel": 2
+  },
+  {
+   "fieldname": "sb_source",
+   "fieldtype": "Section Break",
+   "label": "Source"
+  },
+  {
+   "fieldname": "source",
+   "fieldtype": "Select",
+   "label": "Source",
+   "options": "Direct\nReferral\nExternal Referral",
+   "reqd": 1
+  },
+  {
+   "fieldname": "column_break_19",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "referring_practitioner",
+   "fieldtype": "Link",
+   "hidden": 1,
+   "ignore_user_permissions": 1,
+   "label": "Referring Practitioner",
+   "options": "Healthcare Practitioner"
+  },
+  {
+   "fieldname": "insurance_section",
+   "fieldtype": "Section Break",
+   "label": "Insurance"
+  },
+  {
+   "fieldname": "column_break_23",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fetch_from": "insurance_policy.insurance_payor",
+   "fieldname": "insurance_payor",
+   "fieldtype": "Link",
+   "label": "Insurance Payor",
+   "options": "Insurance Payor",
+   "read_only": 1
+  },
+  {
+   "fieldname": "insurance_policy",
+   "fieldtype": "Link",
+   "label": "Insurance Policy",
+   "options": "Patient Insurance Policy"
+  },
+  {
+   "fieldname": "insurance_coverage",
+   "fieldtype": "Link",
+   "label": "Insurance Coverage",
+   "options": "Patient Insurance Coverage",
+   "read_only": 1
+  },
+  {
+   "fetch_from": "insurance_coverage.approval_status",
+   "fetch_if_empty": 1,
+   "fieldname": "approval_status",
+   "fieldtype": "Select",
+   "label": "Claim Status",
+   "options": "\nPending\nApproved\nRejected\nInvoiced",
+   "read_only": 1
   }
  ],
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2021-03-18 15:59:17.318988",
+ "modified": "2021-12-03 13:32:11.682262",
  "modified_by": "Administrator",
  "module": "Healthcare",
  "name": "Inpatient Record",

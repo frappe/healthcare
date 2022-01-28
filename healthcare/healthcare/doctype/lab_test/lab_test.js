@@ -17,11 +17,24 @@ frappe.ui.form.on('Lab Test', {
 			{ fieldname: 'lab_test_uom', columns: 1 },
 			{ fieldname: 'normal_range', columns: 2 }
 		];
+
 		frm.get_field('descriptive_test_items').grid.editable_fields = [
 			{ fieldname: 'lab_test_particulars', columns: 3 },
 			{ fieldname: 'result_value', columns: 7 }
 		];
+
+		frm.set_query('service_request', function() {
+			return {
+				filters: {
+					'patient': frm.doc.patient,
+					'status': 'Active',
+					'docstatus': 1,
+					'template_dt': 'Lab Test template'
+				}
+			};
+		});
 	},
+
 	refresh: function (frm) {
 		refresh_field('normal_test_items');
 		refresh_field('descriptive_test_items');
@@ -30,6 +43,7 @@ frappe.ui.form.on('Lab Test', {
 				get_lab_test_prescribed(frm);
 			});
 		}
+
 		if (frappe.defaults.get_default('lab_test_approval_required') && frappe.user.has_role('LabTest Approver')) {
 			if (frm.doc.docstatus === 1 && frm.doc.status !== 'Approved' && frm.doc.status !== 'Rejected') {
 				frm.add_custom_button(__('Approve'), function () {
@@ -57,6 +71,14 @@ frappe.ui.form.on('Lab Test', {
 			});
 		}
 
+		frm.set_query('insurance_policy', function() {
+			return {
+				filters: {
+					'patient': frm.doc.patient,
+					'docstatus': 1
+				}
+			};
+		});
 	}
 });
 
@@ -137,40 +159,53 @@ var show_lab_tests = function (frm, lab_test_list) {
 			fieldtype: 'HTML', fieldname: 'lab_test'
 		}]
 	});
+
 	var html_field = d.fields_dict.lab_test.$wrapper;
 	html_field.empty();
 	$.each(lab_test_list, function (x, y) {
 		var row = $(repl(
-			'<div class="col-xs-12" style="padding-top:12px;">\
-				<div class="col-xs-3"> %(lab_test)s </div>\
-				<div class="col-xs-4"> %(practitioner_name)s<br>%(encounter)s</div>\
-				<div class="col-xs-3"> %(date)s </div>\
-				<div class="col-xs-1">\
-					<a data-name="%(name)s" data-lab-test="%(lab_test)s"\
-					data-encounter="%(encounter)s" data-practitioner="%(practitioner)s"\
-					data-invoiced="%(invoiced)s" href="#"><button class="btn btn-default btn-xs">Get</button></a>\
-				</div>\
-			</div><hr>',
-			{ name: y[0], lab_test: y[1], encounter: y[2], invoiced: y[3], practitioner: y[4], practitioner_name: y[5], date: y[6] })
+			'<div class="col-xs-12 row" style="padding-top:12px;">\
+			<div class="col-xs-3"> %(lab_test)s </div>\
+			<div class="col-xs-4">%(encounter)s</div>\
+			<div class="col-xs-3"> %(date)s </div>\
+			<div class="col-xs-1">\
+				<a data-name="%(name)s" data-lab-test="%(lab_test)s"\
+				data-encounter="%(encounter)s" data-practitioner="%(practitioner)s" \
+				data-invoiced="%(invoiced)s" data-source="%(source)s"\
+				data-insurance-payor="%(insurance_payor)s" data-insurance-policy="%(insurance_policy)s"\
+				data-referring-practitioner="%(referring_practitioner)s" href="#"><button class="btn btn-default btn-xs">Get</button></a>\
+			</div>\
+		</div><hr>',
+		{ lab_test: y[0], encounter: y[1], invoiced: y[2], practitioner: y[3], date: y[4],
+			name: y[5], insurance_policy:(y[6]?y[6]:''), insurance_payor:y[7]})
 		).appendTo(html_field);
+
 
 		row.find("a").click(function () {
 			frm.doc.template = $(this).attr('data-lab-test');
-			frm.doc.prescription = $(this).attr('data-name');
+			frm.doc.service_request = $(this).attr('data-name');
 			frm.doc.practitioner = $(this).attr('data-practitioner');
 			frm.set_df_property('template', 'read_only', 1);
 			frm.set_df_property('patient', 'read_only', 1);
 			frm.set_df_property('practitioner', 'read_only', 1);
+			if ($(this).attr("data-insurance-policy")) {
+				frm.doc.insurance_policy = $(this).attr("data-insurance-policy");
+				frm.doc.insurance_payor = $(this).attr("data-insurance-payor");
+			}
 			frm.doc.invoiced = 0;
 			if ($(this).attr('data-invoiced') === 1) {
 				frm.doc.invoiced = 1;
 			}
 			refresh_field('invoiced');
 			refresh_field('template');
+			frm.refresh_field('service_request');
+			frm.refresh_field("insurance_policy");
+			frm.refresh_field("insurance_payor");
 			d.hide();
 			return false;
 		});
 	});
+
 	if (!lab_test_list.length) {
 		var msg = __('No Lab Tests found for the Patient {0}', [frm.doc.patient_name.bold()]);
 		html_field.empty();
@@ -200,6 +235,7 @@ var make_dialog = function (frm, emailed, printed) {
 			dialog.hide();
 		}
 	});
+
 	if (frm.doc.report_preference === 'Print') {
 		dialog.set_values({
 			'result_format': 'Printed',
@@ -213,6 +249,7 @@ var make_dialog = function (frm, emailed, printed) {
 			'message': emailed
 		});
 	}
+
 	var fd = dialog.fields_dict;
 	$(fd.result_format.input).change(function () {
 		if (dialog.get_value('result_format') === 'Emailed') {
@@ -227,6 +264,7 @@ var make_dialog = function (frm, emailed, printed) {
 			});
 		}
 	});
+
 	dialog.show();
 };
 
@@ -237,6 +275,7 @@ var send_sms = function (vals, frm) {
 	if (!number || !message) {
 		frappe.throw(__('Did not send SMS, missing patient mobile number or message content.'));
 	}
+
 	frappe.call({
 		method: 'frappe.core.doctype.sms_settings.sms_settings.send_sms',
 		args: {
