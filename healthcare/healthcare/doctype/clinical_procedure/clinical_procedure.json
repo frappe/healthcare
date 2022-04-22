@@ -9,12 +9,12 @@
  "field_order": [
   "naming_series",
   "title",
+  "service_request",
   "appointment",
   "procedure_template",
   "medical_code",
   "column_break_30",
   "company",
-  "invoiced",
   "section_break_6",
   "patient",
   "patient_name",
@@ -31,6 +31,12 @@
   "start_date",
   "start_time",
   "sample",
+  "insurance_section",
+  "insurance_policy",
+  "insurance_coverage",
+  "column_break_31",
+  "insurance_payor",
+  "coverage_status",
   "consumables_section",
   "consume_stock",
   "warehouse",
@@ -42,7 +48,7 @@
   "column_break_27",
   "consumption_details",
   "sb_refs",
-  "column_break_34",
+  "invoiced",
   "prescription",
   "amended_from"
  ],
@@ -263,7 +269,8 @@
   {
    "collapsible": 1,
    "fieldname": "sb_refs",
-   "fieldtype": "Section Break"
+   "fieldtype": "Section Break",
+   "label": "More Information"
   },
   {
    "fieldname": "patient_name",
@@ -277,10 +284,6 @@
    "in_list_view": 1,
    "label": "Practitioner Name",
    "read_only": 1
-  },
-  {
-   "fieldname": "column_break_34",
-   "fieldtype": "Column Break"
   },
   {
    "allow_on_submit": 1,
@@ -299,14 +302,64 @@
    "label": "Medical Code",
    "options": "Medical Code",
    "read_only": 1
+  },
+  {
+   "fieldname": "insurance_section",
+   "fieldtype": "Section Break",
+   "label": "Insurance"
+  },
+  {
+   "fieldname": "column_break_31",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fetch_from": "insurance_policy.insurance_payor",
+   "fieldname": "insurance_payor",
+   "fieldtype": "Link",
+   "label": "Insurance Payor",
+   "options": "Insurance Payor",
+   "read_only": 1
+  },
+  {
+   "fieldname": "insurance_policy",
+   "fieldtype": "Link",
+   "label": "Insurance Policy",
+   "options": "Patient Insurance Policy"
+  },
+  {
+   "allow_on_submit": 1,
+   "fieldname": "insurance_coverage",
+   "fieldtype": "Link",
+   "label": "Insurance Coverage",
+   "options": "Patient Insurance Coverage",
+   "read_only": 1
+  },
+  {
+   "allow_on_submit": 1,
+   "fieldname": "coverage_status",
+   "fieldtype": "Data",
+   "label": "Claim Status",
+   "read_only": 1
+  },
+  {
+   "fieldname": "service_request",
+   "fieldtype": "Link",
+   "in_standard_filter": 1,
+   "label": "Service Request",
+   "no_copy": 1,
+   "options": "Service Request",
+   "print_hide": 1,
+   "read_only": 1,
+   "search_index": 1
   }
  ],
  "is_submittable": 1,
  "links": [],
- "modified": "2020-06-29 14:28:11.779815",
+ "modified": "2021-12-23 07:45:56.019877",
  "modified_by": "Administrator",
  "module": "Healthcare",
  "name": "Clinical Procedure",
+ "naming_rule": "By \"Naming Series\" field",
  "owner": "Administrator",
  "permissions": [
   {

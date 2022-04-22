@@ -8,7 +8,8 @@ def get_data():
 		'fieldname': 'encounter',
 		'non_standard_fieldnames': {
 			'Patient Medical Record': 'reference_name',
-			'Inpatient Medication Order': 'patient_encounter'
+			'Inpatient Medication Order': 'patient_encounter',
+			'Service Request': 'order_group'
 		},
 		'transactions': [
 			{
@@ -17,7 +18,7 @@ def get_data():
 			},
 			{
 				'label': _('Orders'),
-				'items': ['Inpatient Medication Order']
+				'items': ['Inpatient Medication Order', 'Service Request']
 			}
 		],
 		'disable_create_buttons': ['Inpatient Medication Order']

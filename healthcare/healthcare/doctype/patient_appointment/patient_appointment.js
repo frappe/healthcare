@@ -14,6 +14,10 @@ frappe.ui.form.on('Patient Appointment', {
 			frm.set_value('appointment_time', null);
 			frm.disable_save();
 		}
+		frappe.db.get_single_value('Healthcare Settings', 'automate_appointment_invoicing')
+			.then(automate_invoicing => {
+				frm.toggle_display('insurance_policy', automate_invoicing === 0);
+			})
 	},
 
 	refresh: function(frm) {
@@ -47,6 +51,17 @@ frappe.ui.form.on('Patient Appointment', {
 			return {
 				filters: {
 					'patient': frm.doc.patient
+				}
+			};
+		});
+
+		frm.set_query('service_request', function() {
+			return {
+				filters: {
+					'patient': frm.doc.patient,
+					'status': 'Active',
+					'docstatus': 1,
+					'template_dt': ['in', ['Clinical Procedure', 'Therapy Type']]
 				}
 			};
 		});
@@ -137,6 +152,15 @@ frappe.ui.form.on('Patient Appointment', {
 				create_vital_signs(frm);
 			}, __('Create'));
 		}
+
+		frm.set_query('insurance_policy', function() {
+			return {
+				filters: {
+					'patient': frm.doc.patient,
+					'docstatus': 1
+				}
+			};
+		});
 	},
 
 	patient: function(frm) {
@@ -186,8 +210,10 @@ frappe.ui.form.on('Patient Appointment', {
 					},
 					callback: function(data) {
 						if (data.message) {
-							frappe.model.set_value(frm.doctype, frm.docname, 'paid_amount', data.message.practitioner_charge);
-							frappe.model.set_value(frm.doctype, frm.docname, 'billing_item', data.message.service_item);
+							frm.set_value({
+								'paid_amount': data.message.practitioner_charge,
+								'billing_item': data.message.service_item
+							});
 						}
 					}
 				});
@@ -537,6 +563,7 @@ let show_procedure_templates = function(frm, result) {
 			}
 		]
 	});
+
 	let html_field = d.fields_dict.procedure_template.$wrapper;
 	html_field.empty();
 	$.each(result, function(x, y) {
@@ -569,7 +596,7 @@ let show_procedure_templates = function(frm, result) {
 		});
 	});
 	if (!result) {
-		let msg = __('There are no procedure prescribed for ') + frm.doc.patient;
+		let msg = __('There are no procedures prescribed for {0}', frm.doc.patient);
 		$(repl('<div class="col-xs-12" style="padding-top:20px;" >%(msg)s</div></div>', { msg: msg })).appendTo(html_field);
 	}
 	d.show();
@@ -654,6 +681,6 @@ let calculate_age = function(birth) {
 	let ageMS = Date.parse(Date()) - Date.parse(birth);
 	let age = new Date();
 	age.setTime(ageMS);
-	let years =  age.getFullYear() - 1970;
+	let years = age.getFullYear() - 1970;
 	return `${years} ${__('Years(s)')} ${age.getMonth()} ${__('Month(s)')} ${age.getDate()} ${__('Day(s)')}`;
 };
